@@ -1,0 +1,6 @@
+.snakemake/
+files/
+app.db
+flask_session/
+logs/
+migrations/

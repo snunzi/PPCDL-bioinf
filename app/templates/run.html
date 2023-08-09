@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+
+{% block app_content %}
+<body>
+  <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/loading.css') }}">
+    <title>Create a run</title>
+  </head>
+  <h1>Create a Run</h1>
+  <div class="row">
+        <div class="col-md-4">
+    <form method="POST" action="" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+      {{ wtf.form_errors(form, hiddens="only") }}
+
+      {{ wtf.form_field(form.run_id) }}
+      {{ wtf.form_field(form.run_type) }}
+
+      {{ form.platform.label }}</br>
+      {{ form.platform(onchange="enterRunInfo()") }}
+      <div id="PE_SE" style="display: none;">
+        {{ form.PE_SE.label }}</br>
+        {{ form.PE_SE }}
+
+        {{ form.extension.label }}</br>
+        {{ form.extension(onchange="enterExt()") }}
+        <div id="extension_R1_user" style="display: none;">
+          {{ form.extension_R1_user.label }}</br>
+          {{ form.extension_R1_user }}
+        </div>
+        <div id="extension_R2_user" style="display: none;">
+          {{ form.extension_R2_user.label }}</br>
+          {{ form.extension_R2_user }}
+        </div>
+      </div>
+      <div id="extension_R1" style="display: none;">
+        <label> Read extension (ie. .fastq.gz): </label>
+        {{ form.extension_R1_user }}
+      </div>
+
+      {{ wtf.form_field(form.share) }}
+      {{ wtf.form_field(form.Description) }}
+      <input type="submit" id="form_submit" value="Submit" >
+      <div id="loading" style="display: none;"><img src="/static/img/Spinner-2.gif" alt="Be patient..." /></div>
+    </form>
+
+    <script>
+    function enterExt() {
+      let box_value = document.getElementById("extension").value;
+      if (box_value === "No") {
+        document.getElementById("extension_R1_user").style.display = "block";
+        document.getElementById("extension_R2_user").style.display = "block"
+      } else {
+        document.getElementById("extension_R1_user").style.display = "none";
+        document.getElementById("extension_R2_user").style.display = "none"
+      }
+    }
+    enterExt()
+    </script>
+
+    <script>
+    function enterRunInfo() {
+      let box_value = document.getElementById("platform").value;
+      if (box_value === "illumina") {
+        document.getElementById("PE_SE").style.display = "block";
+        document.getElementById("extension_R1").style.display = "none"
+      } else {
+        document.getElementById("PE_SE").style.display = "none";
+        document.getElementById("extension_R1").style.display = "block"
+      }
+    }
+    enterRunInfo()
+    </script>
+
+  </div>
+</body>
+{% endblock %}
+
+{% block scripts %}
+  {{super()}}
+  <script type="text/javascript">// <![CDATA[
+          function loading(){
+              $("#loading").show();
+              $("#form_submit").hide();
+          }
+  // ]]></script>
+{% endblock %}
