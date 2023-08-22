@@ -4,3 +4,4 @@ app.db
 flask_session/
 logs/
 migrations/
+venv/

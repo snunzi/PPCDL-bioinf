@@ -3,26 +3,14 @@ import time
 import sys
 from flask import render_template, current_app, session
 from flask_login import current_user
-from rq import get_current_job
 from app import create_app, db
-from app.models import User, Task, Sample, Run, ReadSummary, PathoscopeSummary, BlastnFull
-import snakemake
+from app.models import User, Sample, Run, ReadSummary, PathoscopeSummary, BlastnFull
 import pyexcel as pe
 import subprocess
 
 app = create_app()
 app.app_context().push()
 
-def _set_task_progress(progress):
-	job = get_current_job()
-	if job:
-		job.meta['progress'] = progress
-		job.save_meta()
-		task = Task.query.get(job.get_id())
-		task.user.add_notification('task_progress', {'task_id': job.get_id(), 'progress': progress})
-		if progress >= 100:
-			task.complete = True
-		db.session.commit()
 
 def snake_minmeta(snakefile,path,run):
 	#Create run script
@@ -67,7 +55,7 @@ def snake_illmeta(snakefile,path,run):
 		db.session.commit()
 
 
-def snake_hlb(snakefile,path,run):
+def snake_virus(snakefile,path,run):
 	#Create run script
 	script_path = os.path.join(path,'run_snakemake.py')
 	command = ''.join(['snakemake.snakemake("',snakefile,'", workdir="',path,'", conda_prefix="/home/sonunziata/pipeline_environments", cores=40, use_conda=True, keepgoing=True, resources={"load":1})'])

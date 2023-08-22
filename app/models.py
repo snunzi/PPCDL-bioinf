@@ -3,8 +3,6 @@ from app import db, login
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from flask import current_app
-import redis
-import rq
 import json
 from time import time
 
@@ -19,7 +17,6 @@ class User(UserMixin, db.Model):
 	password_hash = db.Column(db.String(128))
 	runs = db.relationship('Run', backref='author', lazy='dynamic')
 	notifications = db.relationship('Notification', backref='user', lazy='dynamic')
-	tasks = db.relationship('Task', backref='user', lazy='dynamic')
 
 	def __repr__(self):
 		return '<User {}>'.format(self.username)
@@ -35,18 +32,6 @@ class User(UserMixin, db.Model):
 		n = Notification(name=name, payload_json=json.dumps(data), user=self)
 		db.session.add(n)
 		return n
-
-	def launch_task(self, name, description, path, *args, **kwargs):
-		rq_job = current_app.task_queue.enqueue('app.tasks.' + name, self.id, path, *args, **kwargs)
-		task = Task(id=rq_job.get_id(), name=name, description=description, path=path, user=self)
-		db.session.add(task)
-		return task
-
-	def get_tasks_in_progress(self):
-		return Task.query.filter_by(user=self, complete=False).all()
-
-	def get_task_in_progress(self, name):
-		return Task.query.filter_by(name=name, user=self, complete=False).first()
 
 class Notification(db.Model):
 		id = db.Column(db.Integer, primary_key=True)
@@ -238,22 +223,3 @@ class BlastnFull(db.Model):
 
 	def __repr__(self):
 		return '<BlastnFull %r>' % self.sample_name
-
-class Task(db.Model):
-	id = db.Column(db.String(36), primary_key=True)
-	name = db.Column(db.String(128), index=True)
-	description = db.Column(db.String(128))
-	path = db.Column(db.String(140))
-	user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-	complete = db.Column(db.Boolean, default=False)
-
-	def get_rq_job(self):
-		try:
-			rq_job = rq.job.Job.fetch(self.id, connection=current_app.redis)
-		except (redis.exceptions.RedisError, rq.exceptions.NoSuchJobError):
-			return None
-		return rq_job
-
-	def get_progress(self):
-		job = self.get_rq_job()
-		return job.meta.get('progress', 0) if job is not None else 100

@@ -7,15 +7,13 @@ from app import db
 from app.models import User, Sample, Run, ReadSummary, PathoscopeSummary, BlastnFull
 from app.main import bp
 from app.main.helper import merge_fastq
-from app.main.forms import AssemblyForm, ConfigForm, CreateRun, PipelineForm, VirusConfigForm, MinMetaConfigForm, IllMetaConfigForm, ExploreForm
+from app.main.forms import AssemblyForm, CreateRun, PipelineForm, VirusConfigForm, MinMetaConfigForm, IllMetaConfigForm, ExploreForm
 from werkzeug.utils import secure_filename
-from Bio import SeqIO
-import snakemake
 import pathlib
 import fileinput
 import sys
 from threading import Thread
-from app.tasks import snake_hlb, snake_minmeta, snake_illmeta
+from app.tasks import snake_virus, snake_minmeta, snake_illmeta
 import flask_excel as excel
 import pyexcel as pe
 import shutil
@@ -410,7 +408,7 @@ def runanalysisdown(username,runname):
 	analysis_file = analysis.split("/")[-1]
 	analysis_path =  "/".join(analysis.split("/")[:-1])
 	print(analysis_path)
-	return send_from_directory(analysis_path, filename=analysis_file, as_attachment=True)
+	return send_from_directory(analysis_path, path=analysis_file, as_attachment=True)
 
 @bp.route('/user/<username>/RunFileDownload/<runname>/<file>', methods=['GET'])
 @login_required
@@ -418,7 +416,7 @@ def filedownload(username,runname, file):
 
 	path = os.path.join(current_app.config['UPLOAD_FOLDER'],runname,'data')
 
-	return send_from_directory(path, filename=file, as_attachment=True)
+	return send_from_directory(path, path=file, as_attachment=True)
 
 @bp.route('/user/<username>/RunQC/<runname>', methods=['GET'])
 @login_required
@@ -438,7 +436,7 @@ def runqcdown(username,runname):
 	qc_file = qc.split("/")[-1]
 	qc_path =  "/".join(qc.split("/")[:-1])
 	print(qc_path)
-	return send_from_directory(qc_path, filename=qc_file, as_attachment=True)
+	return send_from_directory(qc_path, path=qc_file, as_attachment=True)
 
 
 @bp.route('/user/<username>/RunDelete/<runname>', methods=['GET'])
@@ -489,44 +487,38 @@ def pipeline(username, run):
 def viruspipe(username, run):
 	form = VirusConfigForm()
 	if form.validate_on_submit():
-		if current_user.get_task_in_progress('example'):
-			flash(('An analysis is already in progress, please wait'))
-		else:
-			#Get the Run
-			query = Run.query.filter_by(run_id=run).first()
-			run_dict = query.to_dict()
-			path = os.path.join(current_app.config['UPLOAD_FOLDER'],run_dict['run_id'])
+		#Get the Run
+		query = Run.query.filter_by(run_id=run).first()
+		run_dict = query.to_dict()
+		path = os.path.join(current_app.config['UPLOAD_FOLDER'],run_dict['run_id'])
 
-			#Generate Sample file
-			samples = Sample.query.filter_by(run_id=query.id).all()
-			with open(os.path.join(path, "samples.tsv"), 'w') as sample_file:
-				print("sample\thost", file=sample_file)
-				for sample in samples:
-					sample_dict = sample.to_dict()
-					print(sample_dict['sample_id'] + "\t" + sample_dict['host'], file=sample_file)
+		#Generate Sample file
+		samples = Sample.query.filter_by(run_id=query.id).all()
+		with open(os.path.join(path, "samples.tsv"), 'w') as sample_file:
+			print("sample\thost", file=sample_file)
+			for sample in samples:
+				sample_dict = sample.to_dict()
+				print(sample_dict['sample_id'] + "\t" + sample_dict['host'], file=sample_file)
 
-			#Generate config file
-			config_dict = request.form.to_dict()
-			config_dict.update(run_dict)
-			config_dict["user_email"] = current_user.email
-			del config_dict['id']
-			del config_dict['description']
-			del config_dict['share']
-			with open(os.path.join(path, "config.yaml"), 'w') as config_file:
-				for line in fileinput.input(os.path.join(current_app.config['CONFIG_FOLDER'], "pipelines/virus/config.yaml"), inplace=False):
-					line = line.rstrip()
-					if not line:
-						continue
-					for f_key, f_value in config_dict.items():
-						if f_key in line:
-							line = line.replace(f_key, str(f_value))
-					print(line, file = config_file)
+		#Generate config file
+		config_dict = request.form.to_dict()
+		config_dict.update(run_dict)
+		config_dict["user_email"] = current_user.email
+		del config_dict['id']
+		del config_dict['description']
+		del config_dict['share']
+		with open(os.path.join(path, "config.yaml"), 'w') as config_file:
+			for line in fileinput.input(os.path.join(current_app.config['CONFIG_FOLDER'], "pipelines/virus/config.yaml"), inplace=False):
+				line = line.rstrip()
+				if not line:
+					continue
+				for f_key, f_value in config_dict.items():
+					if f_key in line:
+						line = line.replace(f_key, str(f_value))
+				print(line, file = config_file)
 		snakefile = os.path.join(current_app.config['PIPELINE_FOLDER'], "virus/Snakefile")
-		thread = Thread(target=snake_hlb, args=(snakefile,path,run))
+		thread = Thread(target=snake_virus, args=(snakefile,path,run))
 		thread.start()
-			#snakemake.snakemake(os.path.join(current_app.config['PIPELINE_FOLDER'], "test/Snakefile"), workdir=path)
-			#current_user.launch_task('example', ('Creating your assembly...'), path)
-			#db.session.commit()
 		flash('Your analysis is running!')
 		return redirect(url_for('main.index', username=current_user.username))
 	return render_template("viruspipe.html", user=user, form=form)
@@ -561,9 +553,6 @@ def minmetapipe(username, run):
 		snakefile = os.path.join(current_app.config['PIPELINE_FOLDER'], "minion_metabarcode/Snakefile")
 		thread = Thread(target=snake_minmeta, args=(snakefile,path,run))
 		thread.start()
-			#snakemake.snakemake(os.path.join(current_app.config['PIPELINE_FOLDER'], "test/Snakefile"), workdir=path)
-			#current_user.launch_task('example', ('Creating your assembly...'), path)
-			#db.session.commit()
 		flash('Your analysis is running!')
 
 		return redirect(url_for('main.index', username=current_user.username))
@@ -611,9 +600,6 @@ def illmetapipe(username, run):
 		snakefile = os.path.join(current_app.config['PIPELINE_FOLDER'], "illumina_metabarcode/Snakefile")
 		thread = Thread(target=snake_illmeta, args=(snakefile,path,run))
 		thread.start()
-			#snakemake.snakemake(os.path.join(current_app.config['PIPELINE_FOLDER'], "test/Snakefile"), workdir=path)
-			#current_user.launch_task('example', ('Creating your assembly...'), path)
-			#db.session.commit()
 		flash('Your analysis is running!')
 		return redirect(url_for('main.index', username=current_user.username))
 	return render_template("illmetapipe.html", user=user, form=form)
