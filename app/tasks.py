@@ -3,7 +3,7 @@ import time
 import sys
 from flask import render_template, current_app, session
 from flask_login import current_user
-from app import create_app, db
+from app import db, create_app
 from app.models import User, Sample, Run, ReadSummary, PathoscopeSummary, BlastnFull
 import pyexcel as pe
 import subprocess

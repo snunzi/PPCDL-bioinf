@@ -20,7 +20,7 @@
         {% endfor %}
       </tbody>
     </table>
-    <form method="GET" action="{{ url_for('main.viruspipe', username=current_user.username, run=runname) }}">
+    <form method="GET" action="{{ url_for('pipelines.viruspipe', username=current_user.username, run=runname) }}">
       <input type="submit" value="Submit">
     </form>
 </div>
