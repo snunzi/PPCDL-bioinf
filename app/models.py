@@ -223,3 +223,56 @@ class BlastnFull(db.Model):
 
 	def __repr__(self):
 		return '<BlastnFull %r>' % self.sample_name
+
+class BlastnSummary(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	sample_name = db.Column(db.String(140))
+	acc = db.Column(db.String(140))
+	num_align = db.Column(db.String(140))
+	percent_id = db.Column(db.String(140))
+	fold_cov = db.Column(db.String(140))
+	virus_length = db.Column(db.String(140))
+	alignment_length = db.Column(db.String(140))
+	genome_cov = db.Column(db.String(140))
+	classification = db.Column(db.String(140))
+	description = db.Column(db.String(140))
+	virus = db.Column(db.String(140))
+	adapt_id = db.Column(db.String(140))
+
+	sample_id = db.Column(db.Integer, db.ForeignKey('sample.id'),nullable=False)
+	sample = db.relationship('Sample', backref=db.backref('blastnsums', lazy='dynamic', cascade="all,delete"))
+
+
+	def __init__(self, sample_name, acc, num_align, percent_id , fold_cov, virus_length, alignment_length, genome_cov, classification, description, virus, adapt_id, sample):
+		self.sample_name = sample_name
+		self.acc = acc
+		self.num_align = align
+		self.percent_id = percent_id
+		self.fold_cov = fold_cov
+		self.virus_length = virus_length
+		self.alignment_length = alignment_length
+		self.genome_cov = genome_cov
+		self.classification = classification
+		self.description = description
+		self.virus = virus
+		self.adapt_id = adapt_id
+		self.sample = sample
+
+	def to_dict(self):
+		return {
+		'sample_name': self.sample_name,
+		'acc': self.acc,
+		'num_align' : self.num_align,
+		'percent_id': self.percent_id,
+		'fold_cov': self.fold_cov,
+		'virus_length': self.virus_length,
+		'alignment_length': self.alignment_length,
+		'genome_cov': self.genome_cov,
+		'classification': self.classification,
+		'description': self.description,
+		'virus': self.virus,
+		'adapt_id': self.adapt_id,
+		}
+
+	def __repr__(self):
+		return '<BlastnSummary %r>' % self.sample_name

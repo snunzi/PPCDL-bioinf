@@ -9,13 +9,15 @@
       <tr>
         <th>Sample</th>
         <th>Host</th>
+        <th>Notes</th>
        </tr>
        </thead>
       <tbody>
         {% for sample in samples %}
           <tr>
             <td>{{ sample.sample_id }}</td>
-            <td data-name="host" class="host" data-type="select" data-pk="{{sample.id}}">{{sample.host}}</td>
+            <td id="host" data-name="host" class="host" data-type="select" data-pk="{{sample.id}}">{{sample.host}}</td>
+            <td id="notes" data-name="notes" class="notes" data-type="text" data-pk="{{sample.id}}">{{sample.notes}}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -34,6 +36,7 @@
       var dataTable = $('#data').DataTable({
          columns: [
            null,
+           { className: "edit_cell" },
            { className: "edit_cell" }],
          });
       $.fn.editable.defaults.mode = 'inline';
@@ -47,6 +50,19 @@
           {value: 'tomato', text: 'tomato'},
           {value: 'citrus', text: 'citrus'},
           {value: 'arabidopsis', text: 'arabidopsis'}],
+        validate:function(value){
+            if($.trim(value) == '')
+            {
+                return 'This field is required';
+            }
+        }
+      });
+      $('#data').editable({
+        container:'body',
+        selector:'td.notes',
+        url:"{{ url_for('main.updatesample', username=current_user.username) }}",
+        title:'Notes',
+        type:'POST',
         validate:function(value){
             if($.trim(value) == '')
             {

@@ -68,7 +68,8 @@
             "data": data[1],
             "render": function (data, type, row, meta) {
               let durl = "{{ url_for('main.rundelete', username=current_user.username, runname='DATA') }}".replace('DATA', data);
-              return '<a class="btn btn-info btn-sm" onclick="return DeleteFunction()" href="' + durl  + '">' + 'Delete'+'</a>';
+              let eurl = "{{ url_for('main.runsamples', username=current_user.username, runname='DATA') }}".replace('DATA', data);
+              return '<a class="btn btn-info btn-sm" onclick="return DeleteFunction()" href="' + durl  + '">' + 'Delete'+'</a><a class="btn btn-info btn-sm" href="' + eurl  + '">' + 'Edit'+'</a>';
             }
           },
           {

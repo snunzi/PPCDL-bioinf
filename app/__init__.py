@@ -49,6 +49,9 @@ def create_app(config_class=Config):
     from app.pipelines import bp as pipelines_bp
     app.register_blueprint(pipelines_bp)
 
+    from app.analysisresults import bp as analysisresults_bp
+    app.register_blueprint(analysisresults_bp)
+
     from app.static import bp as static_bp
     app.register_blueprint(static_bp)
 
